@@ -201,11 +201,12 @@ Endpoints for managing data preprocessing jobs.
 Starts a preprocessing job to prepare data for training.
 
 - **URL**: `POST /preprocessing/run`
-- **Status Code**: `200 OK`
+- **Status Code**: `201 Created`
 - **Request Body**:
   ```json
   {
     "job_id": "string",
+    "dataset_id": "string",
     "dataset_url": "string",
     "weather_url": "string" (optional),
     "splits": {

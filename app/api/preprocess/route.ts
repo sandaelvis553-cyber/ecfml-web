@@ -18,6 +18,9 @@ export async function POST(request: Request) {
     const jobId =
       (body?.job_id as string | undefined) ??
       (body?.jobId as string | undefined);
+    const datasetId =
+      (body?.dataset_id as string | undefined) ??
+      (body?.datasetId as string | undefined);
     const datasetUrl =
       (body?.dataset_url as string | undefined) ??
       (body?.datasetUrl as string | undefined);
@@ -28,6 +31,7 @@ export async function POST(request: Request) {
 
     const payload: Record<string, unknown> = {
       ...(jobId ? { job_id: jobId } : {}),
+      ...(datasetId ? { dataset_id: datasetId } : {}),
       ...(datasetUrl ? { dataset_url: datasetUrl } : {}),
       ...(weatherUrl ? { weather_url: weatherUrl } : {}),
       ...(splits ? { splits } : {}),

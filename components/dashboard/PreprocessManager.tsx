@@ -291,6 +291,7 @@ export default function PreprocessManager({
 
     const payload = {
       job_id: createJobId(),
+      dataset_id: selectedDataset.id,
       dataset_url: datasetUrl,
       weather_url: weatherUrl ?? undefined,
       splits: {
@@ -471,10 +472,21 @@ export default function PreprocessManager({
                     asChild
                     variant="secondary"
                     onClick={() =>
+                      window.open(
+                        `/dashboard/preprocess/${activeStatus.job_id ?? jobId}/view`,
+                        "_blank",
+                      )
+                    }
+                  >
+                    <a>View results</a>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
                       window.open(activeStatus.processed_file_path, "_blank")
                     }
                   >
-                    <a>View processed file</a>
+                    Download file
                   </Button>
                 </div>
               ) : null}
