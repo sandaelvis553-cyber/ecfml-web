@@ -31,6 +31,7 @@ import {
   normalizeModelRunRecord,
   normalizePreprocessJobRecord,
   readEvaluationCache,
+  writeEvaluationCache,
   type EvaluationApiRecord,
   type ModelRunApiRecord,
   type PreprocessJobApiRecord,
@@ -43,13 +44,21 @@ function getRunId(run: NormalizedRun) {
   return run.job_id;
 }
 
-export default function EvaluateManager() {
-  const [results, setResults] = useState<EvaluationResult[]>([]);
+export default function EvaluateManager({
+  initialResults,
+  initialError = null,
+}: {
+  initialResults?: EvaluationResult[];
+  initialError?: string | null;
+}) {
+  const [results, setResults] = useState<EvaluationResult[]>(
+    initialResults ?? [],
+  );
   const [selectedSourceType, setSelectedSourceType] =
     useState<SourceType>("RF");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialResults ? false : true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const selectedSourceTypeRef = useRef<SourceType>("RF");
 
   useEffect(() => {
@@ -231,9 +240,20 @@ export default function EvaluateManager() {
   );
 
   useEffect(() => {
-    queueMicrotask(() => {
-      void loadResults("initial");
-    });
+    // Write server-evaluated results to client-side session cache
+    if (initialResults) {
+      initialResults.forEach((res) => {
+        if (res.modelRunId) {
+          writeEvaluationCache(res.modelRunId, res);
+        }
+      });
+    }
+
+    if (!initialResults) {
+      queueMicrotask(() => {
+        void loadResults("initial");
+      });
+    }
 
     const handleEvaluationComplete = () => {
       void loadResults("refresh");
@@ -250,7 +270,7 @@ export default function EvaluateManager() {
         handleEvaluationComplete,
       );
     };
-  }, [loadResults]);
+  }, [initialResults, loadResults]);
 
   if (loading) {
     return (

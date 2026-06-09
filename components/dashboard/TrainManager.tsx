@@ -88,7 +88,7 @@ interface ModelRunListRecord {
 }
 
 const normalizeHistoryRecord = (
-  record: ModelRunListRecord,
+  record: ModelRunApiRecord,
 ): TrainingHistoryRecord => {
   const normalized = normalizeModelRunRecord(record);
 
@@ -126,16 +126,49 @@ const DEFAULT_SVR_PARAMS: SVRHyperparams = {
   gamma: "scale",
 };
 
+interface TrainManagerProps {
+  initialJobs?: PreprocessJobApiRecord[];
+  initialHistory?: ModelRunApiRecord[];
+  initialError?: string | null;
+}
+
 /**
  * Component for configuring and training ML models.
  */
-export default function TrainManager() {
-  const [jobs, setJobs] = useState<PreprocessJobRecord[]>([]);
+export default function TrainManager({
+  initialJobs = [],
+  initialHistory = [],
+  initialError = null,
+}: TrainManagerProps) {
+  const normalizedInitialJobs = useMemo(() => {
+    return initialJobs.map((job) => {
+      const normalized = normalizePreprocessJobRecord(job);
+      return {
+        job_id: normalized.job_id,
+        status: normalized.status as JobStatus,
+        created_at: normalized.created_at,
+        result_summary: normalized.result_summary as PreprocessJobRecord["result_summary"],
+        processed_file_path: normalized.processed_file_path ?? undefined,
+      };
+    });
+  }, [initialJobs]);
+
+  const normalizedInitialHistory = useMemo(() => {
+    return initialHistory.map((record) => normalizeHistoryRecord(record));
+  }, [initialHistory]);
+
+  const [jobs, setJobs] = useState<PreprocessJobRecord[]>(() =>
+    normalizedInitialJobs.filter((job) => job.status === "COMPLETE")
+  );
   const [trainingHistory, setTrainingHistory] = useState<
     TrainingHistoryRecord[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  >(normalizedInitialHistory);
+  const [loading, setLoading] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(() => {
+    // Select first job if available
+    const completedJobs = normalizedInitialJobs.filter((job) => job.status === "COMPLETE");
+    return completedJobs.length === 1 ? completedJobs[0].job_id : null;
+  });
   const [selectedModel, setSelectedModel] =
     useState<ModelType>("RANDOM_FOREST");
   const [isTraining, setIsTraining] = useState(false);
@@ -154,64 +187,12 @@ export default function TrainManager() {
   const [svrParams, setSvrParams] =
     useState<SVRHyperparams>(DEFAULT_SVR_PARAMS);
 
-  // Fetch preprocessing jobs on mount
+  // Trigger error toast on mount if server fetch failed
   useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch("/api/preprocess/jobs");
-        const payload = await res.json().catch(() => null);
-        if (!res.ok) {
-          throw new Error(
-            extractApiErrorMessage(
-              payload,
-              "Failed to fetch preprocessing jobs",
-            ),
-          );
-        }
-        const data = unwrapApiData<PreprocessJobRecord[]>(payload);
-        // Filter to only completed jobs
-        const completed = (Array.isArray(data) ? data : []).filter(
-          (job: PreprocessJobRecord) => job.status === "COMPLETE",
-        );
-        setJobs(completed);
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to load jobs";
-        toast.error(message);
-        setJobs([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchJobs();
-  }, []);
-
-  // Fetch training history
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const res = await fetch("/api/models/jobs");
-        const payload = await res.json().catch(() => null);
-        if (!res.ok) {
-          throw new Error(
-            extractApiErrorMessage(payload, "Failed to fetch training history"),
-          );
-        }
-        const data = unwrapApiData<ModelRunListRecord[]>(payload);
-        setTrainingHistory(
-          Array.isArray(data) ? data.map(normalizeHistoryRecord) : [],
-        );
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Failed to load history";
-        toast.error(message);
-      }
-    };
-
-    fetchHistory();
-  }, []);
+    if (initialError) {
+      toast.error(initialError);
+    }
+  }, [initialError]);
 
   const selectedJob = useMemo(
     () => jobs.find((job) => job.job_id === selectedJobId) ?? null,

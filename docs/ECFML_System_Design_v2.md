@@ -1577,25 +1577,27 @@ services:
 
 ### 11.4 `requirements.txt`
 ```
-fastapi[standard]==0.136.1
-uvicorn[standard]==0.34.0
-pydantic-settings==2.9.1
-python-jose[cryptography]==3.3.0
-httpx==0.28.1
+fastapi>=0.136.1
+uvicorn[standard]>=0.46.0
+pydantic>=2.13.3
+pydantic-settings>=2.14.0
+greenlet==3.5.0
+sqlalchemy==2.0.49
+sqlmodel==0.0.38
+pyjwt[crypto]>=2.12.0
+httpx>=0.28.1,<0.29.0
 pandas==2.2.3
-numpy==2.2.3
-scikit-learn==1.6.1
+numpy==2.1.2
+scikit-learn==1.5.2
 joblib==1.4.2
-pyarrow==19.0.0
 openpyxl==3.1.5
-python-dotenv==1.1.0
-langgraph==1.1.6
-langchain==1.0.0
-langchain-core==1.0.0
-langchain-openai==0.3.0
-langchain-anthropic==0.3.0
-langchain-google-genai==2.1.0
-langsmith==0.3.0
+pyarrow>=24.0.0
+langgraph==1.2.0
+langgraph-checkpoint>=2.1.0,<5.0.0
+langchain-core>=1.4.0,<2 
+langchain-openai==1.2.1
+langchain-anthropic==1.3.5
+langchain-google-genai==4.1.1
 ```
 
 ### 11.5 `package.json` (key deps)
