@@ -1,13 +1,37 @@
 import type { Metadata } from "next";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import TrainManager from "@/components/dashboard/TrainManager";
+import { mlFetch } from "@/lib/api-client";
+import type { ModelRunApiRecord, PreprocessJobApiRecord } from "@/lib/evaluation-utils";
 
 export const metadata: Metadata = {
   title: "Model Training",
   description: "Train Random Forest and SVR models on preprocessed data.",
 };
 
-export default function TrainPage() {
+export default async function TrainPage() {
+  let initialJobs: PreprocessJobApiRecord[] = [];
+  let initialHistory: ModelRunApiRecord[] = [];
+  let initialError: string | null = null;
+
+  try {
+    const [jobsRes, modelsRes] = await Promise.all([
+      mlFetch<PreprocessJobApiRecord[]>("/api/v1/preprocessing/jobs"),
+      mlFetch<ModelRunApiRecord[] | { data: ModelRunApiRecord[] }>("/api/v1/models"),
+    ]);
+
+    initialJobs = jobsRes;
+
+    const modelsData = Array.isArray((modelsRes as { data?: ModelRunApiRecord[] })?.data)
+      ? (modelsRes as { data: ModelRunApiRecord[] }).data
+      : Array.isArray(modelsRes)
+      ? modelsRes
+      : [];
+    initialHistory = modelsData;
+  } catch (error) {
+    initialError = error instanceof Error ? error.message : "Failed to load page data";
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -34,7 +58,20 @@ export default function TrainPage() {
         </AlertDescription>
       </Alert>
 
-      <TrainManager />
+      {initialError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            Failed to load initial training data: {initialError}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <TrainManager
+        initialJobs={initialJobs}
+        initialHistory={initialHistory}
+        initialError={initialError}
+      />
     </div>
   );
 }
+
